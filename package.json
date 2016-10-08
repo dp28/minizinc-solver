@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "A javascript wrapper for the MiniZinc constraints modelling language compiler and solver.",
   "main": "src/index.js",
+  "scripts": {
+    "test": "mocha spec",
+    "test:watch": "mocha -w --growl spec"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dp28/minizinc-solver.git"
@@ -18,7 +22,15 @@
     "url": "https://github.com/dp28/minizinc-solver/issues"
   },
   "homepage": "https://github.com/dp28/minizinc-solver#readme",
+  "os": [
+    "linux"
+  ],
   "dependencies": {
     "bluebird": "^3.4.6"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "mocha": "^3.1.0"
   }
 }

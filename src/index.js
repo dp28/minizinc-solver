@@ -35,7 +35,7 @@ function runSolver(problemFilePath) {
 }
 
 function parseResult(resultString) {
-  return JSON.parse(resultString.split(SOLUTION_SEPARATOR)[0]);
+  return resultString.split(SOLUTION_SEPARATOR)[0];
 }
 
 function deleteFile(filePath) {
