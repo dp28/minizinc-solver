@@ -1,24 +1,14 @@
-var Promise = require('bluebird');
-var exec = Promise.promisify(require('child_process').exec);
+var exec = require('child_process').exec;
 var fs = require('fs');
-var writeFile = Promise.promisify(fs.writeFile);
-var unlink = Promise.promisify(fs.unlink);
 var path = require('path');
 
 var SOLVER_DIR = path.join(__dirname, '../', './lib');
 var SOLUTION_SEPARATOR = '----------';
 var SOLVE_COMMAND = './solve --num-solutions 1 --solution-separator ' + SOLUTION_SEPARATOR + ' ';
 
-module.exports.solve = function(minizincProblemString) {
-  return solveMinizincProblem(minizincProblemString);
-}
-
-function solveMinizincProblem(minizincProblemString) {
+module.exports.solve = function solveMinizincProblem(minizincProblemString, callback) {
   var problemFilePath = buildProblemFilePath();
-  return writeFile(problemFilePath, minizincProblemString)
-    .then(runSolver(problemFilePath))
-    .then(parseResult)
-    .finally(deleteFile(problemFilePath));
+  fs.writeFile(problemFilePath, minizincProblemString, runSolver(problemFilePath, callback));
 }
 
 function buildProblemFilePath() {
@@ -28,31 +18,27 @@ function buildProblemFilePath() {
   return path.join(__dirname, '../', fileName);
 }
 
-function runSolver(problemFilePath) {
+function runSolver(problemFilePath, callback) {
   return function() {
-    return exec(SOLVE_COMMAND + problemFilePath, { cwd: SOLVER_DIR })
-      .catch(handleMiniZincError);
+    exec(SOLVE_COMMAND + problemFilePath, { cwd: SOLVER_DIR }, function(error, result) {
+      error ? handleMiniZincError(error, callback) : parseResult(result, callback);
+      fs.unlink(problemFilePath);
+    });
   }
 }
 
-function handleMiniZincError(error) {
+function handleMiniZincError(error, callback) {
   var errorStart = "\nError: ";
   var message = error.message.substring(error.message.indexOf(errorStart) + errorStart.length);
   var lineNumber = error.message.match(/\.mzn:(\d+):/)[1];
-  return Promise.reject(buildError('syntax_error', '(line ' + lineNumber + '): ' + message));
+  callback(buildError('syntax_error', '(line ' + lineNumber + '): ' + message));
 }
 
-function parseResult(resultString) {
+function parseResult(resultString, callback) {
   if (resultString.indexOf(SOLUTION_SEPARATOR) < 0)
-    return null;
+    callback(null, null);
   else
-    return resultString.split(SOLUTION_SEPARATOR)[0];
-}
-
-function deleteFile(filePath) {
-  return function() {
-    return unlink(filePath);
-  }
+    callback(null, resultString.split(SOLUTION_SEPARATOR)[0]);
 }
 
 function buildError(type, message) {
