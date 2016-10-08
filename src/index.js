@@ -30,8 +30,16 @@ function buildProblemFilePath() {
 
 function runSolver(problemFilePath) {
   return function() {
-    return exec(SOLVE_COMMAND + problemFilePath, { cwd: SOLVER_DIR });
+    return exec(SOLVE_COMMAND + problemFilePath, { cwd: SOLVER_DIR })
+      .catch(handleMiniZincError);
   }
+}
+
+function handleMiniZincError(error) {
+  var errorStart = "\nError: ";
+  var message = error.message.substring(error.message.indexOf(errorStart) + errorStart.length);
+  var lineNumber = error.message.match(/\.mzn:(\d+):/)[1];
+  return Promise.reject(buildError('syntax_error', '(line ' + lineNumber + '): ' + message));
 }
 
 function parseResult(resultString) {
@@ -42,4 +50,12 @@ function deleteFile(filePath) {
   return function() {
     return unlink(filePath);
   }
+}
+
+function buildError(type, message) {
+  return {
+    isMiniZincError: true,
+    type: type,
+    message: 'MiniZinc error: ' + message
+  };
 }
