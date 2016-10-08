@@ -26,8 +26,13 @@ A single method is provided with the signature:
 `solve(minizincProblem: string): Promise<string>`
 
 It takes a string containing a problem specified in the MiniZinc language and
-returns a Promise for the string output of the problem. The format of the output
-is defined within the MiniZinc problem using the normal "output" command.
+returns a Promise, which may return one of three ways:
+* succeed with a `string` containing the output of the problem
+** The format of the output is defined within the MiniZinc problem using the
+normal "output" command
+* succeed with `null` if the problem cannot be solved
+* fail with an error of the following form if there is a syntax error:
+`{ type: 'syntax_error', message: <string> }`
 
 ## Installation
 
