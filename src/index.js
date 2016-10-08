@@ -43,7 +43,10 @@ function handleMiniZincError(error) {
 }
 
 function parseResult(resultString) {
-  return resultString.split(SOLUTION_SEPARATOR)[0];
+  if (resultString.indexOf(SOLUTION_SEPARATOR) < 0)
+    return null;
+  else
+    return resultString.split(SOLUTION_SEPARATOR)[0];
 }
 
 function deleteFile(filePath) {
