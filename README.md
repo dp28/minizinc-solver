@@ -34,12 +34,20 @@ normal "output" command
 * fail with an error of the following form if there is a syntax error:
 `{ type: 'syntax_error', message: <string> }`
 
+Typescript definitions are also provided.
+
 ## Installation
 
 This library is only suitable for 64-bit Linux due o the version of the
 underlying MiniZinc command line version. To install this library, run:
 
 `npm install minizinc-solver`
+
+## Testing
+
+Tests are written using Mocha and Chai. To run them, use:
+
+`npm test`
 
 ## License
 
