@@ -73,3 +73,37 @@ describe('#solve', function() {
     });
   });
 });
+
+describe('#solveWithTimeout', function() {
+  context('with a valid MiniZinc problem that cannot be solved within the timeout', function() {
+    var problem = 'var 0..1000000: x; var 0..100000: y; constraint x = 3 * y / 2; solve satisfy; output ["x -> ", show(x)];'
+    var timeout = 0;
+
+    var solve = function(callback) {
+      require('../src').solveWithTimeout(problem, timeout, callback);
+    }
+
+    it('should return a falsy output value', function(done) {
+      solve(function(_, output) {
+        expect(output).to.beFalsy
+        done();
+      });
+    });
+
+    describe('the returned error', function() {
+      it('should have the type "timeout_error"', function(done) {
+        solve(function(error) {
+          expect(error).to.have.property('type', 'timeout_error');
+          done();
+        });
+      });
+
+      it('should have a message that mentions minizinc timeout', function(done) {
+        solve(function(error) {
+          expect(error.message).to.match(/minizinc.*time.*out/i);
+          done();
+        });
+      });
+    });
+  });
+});

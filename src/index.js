@@ -5,10 +5,19 @@ var path = require('path');
 var SOLVER_DIR = path.join(__dirname, '../', './lib');
 var SOLUTION_SEPARATOR = '----------';
 var SOLVE_COMMAND = './solve --num-solutions 1 --solution-separator ' + SOLUTION_SEPARATOR + ' ';
+var DEFAULT_TIMEOUT_IN_MILLIS = 30000;
 
-module.exports.solve = function solveMinizincProblem(minizincProblemString, callback) {
+module.exports.solve = solveMinizincProblem;
+module.exports.solveWithTimeout = solveMinizincProblemWithTimeout;
+
+function solveMinizincProblem(minizincProblemString, callback) {
+  solveMinizincProblemWithTimeout(minizincProblemString, DEFAULT_TIMEOUT_IN_MILLIS, callback)
+}
+
+function solveMinizincProblemWithTimeout(minizincProblemString, timeoutInMillis, callback) {
   var problemFilePath = buildProblemFilePath();
-  fs.writeFile(problemFilePath, minizincProblemString, runSolver(problemFilePath, callback));
+  var solve = runTimedSolver(problemFilePath, timeoutInMillis, callback);
+  fs.writeFile(problemFilePath, minizincProblemString, solve);
 }
 
 function buildProblemFilePath() {
@@ -18,13 +27,27 @@ function buildProblemFilePath() {
   return path.join(__dirname, '../', fileName);
 }
 
-function runSolver(problemFilePath, callback) {
+function runTimedSolver(problemFilePath, timeoutInMillis, callback) {
   return function() {
-    exec(SOLVE_COMMAND + problemFilePath, { cwd: SOLVER_DIR }, function(error, result) {
-      error ? handleMiniZincError(error, callback) : parseResult(result, callback);
-      fs.unlink(problemFilePath);
-    });
-  }
+    var process = runSolver(problemFilePath, timeoutInMillis, callback);
+    setTimeout(process.kill.bind(process), timeoutInMillis);
+  };
+}
+
+function runSolver(problemFilePath, timeout, callback) {
+  var command = SOLVE_COMMAND + problemFilePath;
+  return exec(command, { cwd: SOLVER_DIR }, function(error, result) {
+    fs.unlink(problemFilePath);
+    if (error) {
+      error.killed ? handleTimeout(timeout, callback) : handleMiniZincError(error, callback);
+    } else {
+      parseResult(result, callback);
+    }
+  });
+}
+
+function handleTimeout(timeoutInMillis, callback) {
+  callback(buildError('timeout_error', 'solver timed out in ' + timeoutInMillis + 'ms'));
 }
 
 function handleMiniZincError(error, callback) {

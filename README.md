@@ -21,9 +21,8 @@ solver.solve(problem).then(doSomethingWithProblemOutput);
 
 ## Usage
 
-A single method is provided with the signature:
 
-`solve(minizincProblem: string): Promise<string>`
+### `solve(minizincProblem: string, callback: (error?, result: string) => void): void`
 
 It takes a string containing a problem specified in the MiniZinc language and
 returns a Promise, which may return one of three ways:
@@ -33,8 +32,14 @@ normal "output" command
 * succeed with `null` if the problem cannot be solved
 * fail with an error of the following form if there is a syntax error:
 `{ type: 'syntax_error', message: <string> }`
+* fail with an error of the following form if the problem is not solved within 30 seconds:
+`{ type: 'timeout_error', message: <string> }`
 
 Typescript definitions are also provided.
+
+### `solveWithTimeout(minizincProblem: string, timeoutInMillis: number, callback: (error?, result: string) => void): void`
+
+This is the same as `solve` except that the timeout time can be specified.
 
 ## Installation
 
