@@ -8,8 +8,8 @@ module.exports.timedExec = function(command, commandArgs, options, callback) {
   var safeOptions = fillDefaultOptions(options);
   var safeCallback = buildSingleCallCallback(callback);
   var childProcess = spawn(command, commandArgs, safeOptions);
-  watchOutput(childProcess, safeCallback);
-  failAfterTimeout(childProcess, safeOptions.timeoutInMillis, safeCallback);
+  var timeout = failAfterTimeout(childProcess, safeOptions.timeoutInMillis, safeCallback);
+  watchOutput(childProcess, timeout, safeCallback);
   return childProcess;
 }
 
@@ -30,7 +30,7 @@ function buildSingleCallCallback(callback) {
   }
 }
 
-function watchOutput(childProcess, callback) {
+function watchOutput(childProcess, timeout, callback) {
   var output = '';
   var error = '';
   childProcess.stdout.on('data', function (data) {
@@ -43,6 +43,7 @@ function watchOutput(childProcess, callback) {
 
   childProcess.on('exit', function(code) {
     var errorResult = code === 0 ? null : buildError('solver_error', error);
+    clearTimeout(timeout);
     callback(errorResult, output);
   })
 }
@@ -50,6 +51,7 @@ function watchOutput(childProcess, callback) {
 function failAfterTimeout(childProcess, timeoutInMillis, callback) {
   var timeout = setTimeout(handleTimeout(childProcess, callback), timeoutInMillis);
   timeout.unref();
+  return timeout;
 }
 
 function handleTimeout(childProcess, callback) {
