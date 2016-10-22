@@ -32,7 +32,9 @@ function buildProblemFilePath() {
 
 function buildOnFinishedHandler(problemFilePath, callback) {
   return function() {
-    fs.unlink(problemFilePath);
+    ['.mzn', '.fzn', '.ozn'].forEach(function(ending) {
+      fs.unlink(problemFilePath.replace('.mzn', ending));
+    });
     callback.apply(null, arguments);
   };
 }
