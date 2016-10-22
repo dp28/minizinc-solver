@@ -1,6 +1,8 @@
-var spawn = require('child_process').spawn;
 var fs = require('fs');
 var path = require('path');
+
+var timedExec = require('./timed-exec').timedExec;
+var buildError = require('./error').buildError;
 
 var SOLVER_DIR = path.join(__dirname, '../', './lib');
 var SOLUTION_SEPARATOR = '----------';
@@ -33,37 +35,32 @@ function buildProblemFilePath() {
 function buildOnFinishedHandler(problemFilePath, callback) {
   return function() {
     ['.mzn', '.fzn', '.ozn'].forEach(function(ending) {
-      fs.unlink(problemFilePath.replace('.mzn', ending));
+      fs.unlink(problemFilePath.replace('.mzn', ending), function() {
+        // ignore failed deletions as these will have been performed by the solver if it succeeds
+      });
     });
     callback.apply(null, arguments);
   };
 }
 
 function runTimedSolver(solverArgs, timeoutInMillis, callback) {
+  var options = { cwd: SOLVER_DIR, timeoutInMillis: timeoutInMillis };
   return function() {
-    var childProcess = runSolver(solverArgs, callback);
-    setTimeout(handleTimeout(childProcess, callback), timeoutInMillis);
-  };
-}
-
-function runSolver(args, callback) {
-  return spawn(SOLVE_COMMAND, args, { cwd: SOLVER_DIR, detached: true }, function(error, result) {
-    error ? handleMiniZincError(error, callback) : parseResult(result, callback);
-  });
-}
-
-function handleTimeout(childProcess, callback) {
-  return function() {
-    process.kill(-childProcess.pid);
-    callback(buildError('timeout_error', 'solver timed out'));
+    timedExec(SOLVE_COMMAND, solverArgs, options, function(error, result) {
+      error ? handleMiniZincError(error, callback) : parseResult(result, callback);
+    });
   };
 }
 
 function handleMiniZincError(error, callback) {
+  callback(error.type === 'solver_error' ? parseSolverError(error) : error);
+}
+
+function parseSolverError(error) {
   var errorStart = "\nError: ";
   var message = error.message.substring(error.message.indexOf(errorStart) + errorStart.length);
-  var lineNumber = error.message.match(/\.mzn:(\d+):/)[1];
-  callback(buildError('syntax_error', '(line ' + lineNumber + '): ' + message));
+  var lineNumber = error.message.match(/\.mzn:(\d+):/)[1] || 'unknown';
+  return buildError('syntax_error', '(line ' + lineNumber + '): ' + message);
 }
 
 function parseResult(resultString, callback) {
@@ -71,12 +68,4 @@ function parseResult(resultString, callback) {
     callback(null, null);
   else
     callback(null, resultString.split(SOLUTION_SEPARATOR)[0]);
-}
-
-function buildError(type, message) {
-  return {
-    isMiniZincError: true,
-    type: type,
-    message: 'MiniZinc error: ' + message
-  };
 }
