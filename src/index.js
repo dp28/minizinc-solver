@@ -1,10 +1,11 @@
-var exec = require('child_process').exec;
+var spawn = require('child_process').spawn;
 var fs = require('fs');
 var path = require('path');
 
 var SOLVER_DIR = path.join(__dirname, '../', './lib');
 var SOLUTION_SEPARATOR = '----------';
-var SOLVE_COMMAND = './solve --num-solutions 1 --solution-separator ' + SOLUTION_SEPARATOR + ' ';
+var SOLVE_COMMAND = './solve';
+var SOLVE_COMMAND_ARGS = ['--num-solutions', 1, '--solution-separator', SOLUTION_SEPARATOR];
 var DEFAULT_TIMEOUT_IN_MILLIS = 30000;
 
 module.exports.solve = solveMinizincProblem;
@@ -16,7 +17,9 @@ function solveMinizincProblem(minizincProblemString, callback) {
 
 function solveMinizincProblemWithTimeout(minizincProblemString, timeoutInMillis, callback) {
   var problemFilePath = buildProblemFilePath();
-  var solve = runTimedSolver(problemFilePath, timeoutInMillis, callback);
+  var onFinished = buildOnFinishedHandler(problemFilePath, callback);
+  var solverArgs = SOLVE_COMMAND_ARGS.concat([problemFilePath]);
+  var solve = runTimedSolver(solverArgs, timeoutInMillis, onFinished);
   fs.writeFile(problemFilePath, minizincProblemString, solve);
 }
 
@@ -27,27 +30,31 @@ function buildProblemFilePath() {
   return path.join(__dirname, '../', fileName);
 }
 
-function runTimedSolver(problemFilePath, timeoutInMillis, callback) {
+function buildOnFinishedHandler(problemFilePath, callback) {
   return function() {
-    var process = runSolver(problemFilePath, timeoutInMillis, callback);
-    setTimeout(process.kill.bind(process), timeoutInMillis);
+    fs.unlink(problemFilePath);
+    callback.apply(null, arguments);
   };
 }
 
-function runSolver(problemFilePath, timeout, callback) {
-  var command = SOLVE_COMMAND + problemFilePath;
-  return exec(command, { cwd: SOLVER_DIR }, function(error, result) {
-    fs.unlink(problemFilePath);
-    if (error) {
-      error.killed ? handleTimeout(timeout, callback) : handleMiniZincError(error, callback);
-    } else {
-      parseResult(result, callback);
-    }
+function runTimedSolver(solverArgs, timeoutInMillis, callback) {
+  return function() {
+    var childProcess = runSolver(solverArgs, callback);
+    setTimeout(handleTimeout(childProcess, callback), timeoutInMillis);
+  };
+}
+
+function runSolver(args, callback) {
+  return spawn(SOLVE_COMMAND, args, { cwd: SOLVER_DIR, detached: true }, function(error, result) {
+    error ? handleMiniZincError(error, callback) : parseResult(result, callback);
   });
 }
 
-function handleTimeout(timeoutInMillis, callback) {
-  callback(buildError('timeout_error', 'solver timed out in ' + timeoutInMillis + 'ms'));
+function handleTimeout(childProcess, callback) {
+  return function() {
+    process.kill(-childProcess.pid);
+    callback(buildError('timeout_error', 'solver timed out'));
+  };
 }
 
 function handleMiniZincError(error, callback) {
