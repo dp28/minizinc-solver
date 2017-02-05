@@ -56,11 +56,34 @@ function handleMiniZincError(error, callback) {
   callback(error.type === 'solver_error' ? parseSolverError(error) : error);
 }
 
+var ERROR_START = "\nError: ";
+
 function parseSolverError(error) {
-  var errorStart = "\nError: ";
-  var message = error.message.substring(error.message.indexOf(errorStart) + errorStart.length);
-  var lineNumber = error.message.match(/\.mzn:(\d+):/)[1] || 'unknown';
-  return buildError('syntax_error', '(line ' + lineNumber + '): ' + message);
+  var errorMessage = error.message || '';
+  return extractMinizincError(errorMessage) || buildError('unknown_error', error);
+}
+
+
+function extractMinizincError(errorMessage) {
+  var message = errorMessage.substring(errorMessage.indexOf(ERROR_START) + ERROR_START.length);
+  if (message.length >= 0) {
+    var lineNumber = extractLineNumberString(errorMessage);
+    return buildError('syntax_error', '(line ' + lineNumber + '): ' + message);
+  }
+  else {
+    return null;
+  }
+}
+
+function extractLineNumberString(message) {
+  var lineNumberMatch = message.match(/\.mzn:(\d+):/);
+  if (lineNumberMatch) {
+    var lineNumber = lineNumberMatch[1] || 'number unknown';
+    return '(line ' + lineNumber + ')';
+  }
+  else {
+    return '';
+  }
 }
 
 function parseResult(resultString, callback) {
