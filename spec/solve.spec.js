@@ -57,13 +57,6 @@ describe('#solve', function() {
         });
       });
 
-      it('should have a message that states the line number of the problem', function(done) {
-        solve(problem, function(error) {
-          expect(error.message).to.match(/line.+1/i);
-          done();
-        });
-      });
-
       it('should have a message that mentions minizinc syntax', function(done) {
         solve(problem, function(error) {
           expect(error.message).to.match(/minizinc.*error.+syntax/i);

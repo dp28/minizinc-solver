@@ -1,3 +1,8 @@
 #!/bin/sh
 
-FLATZINC_CMD=./flatzinc ./minizinc "$@"
+if command -v minizinc >&2 > /dev/null
+then
+  minizinc "$@"
+else
+  >&2 echo "'minizinc' command not found. Make sure you have added your minizinc installation to your path, eg PATH=\$PATH:/path/to/MiniZincIDE-2.2.3-bundle-linux/bin"
+fi
