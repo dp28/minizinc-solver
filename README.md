@@ -45,7 +45,8 @@ This is the same as `solve` except that the timeout time can be specified.
 
 This depends on having a minizinc installation already.
 
-1. Install the binaries for your system [here](https://www.minizinc.org/ide/).
+1. Install the binaries for your system [here](https://www.minizinc.org/ide/). This library uses the
+   Gecode solver, so ensure the MiniZinc installation includes gecode binaries.
 2. Add the binaries to your `PATH`: `export PATH=$PATH:/path/to/MiniZincIDE-2.2.3-bundle-linux/bin`
 3. Install this library: `npm install minizinc-solver`
 

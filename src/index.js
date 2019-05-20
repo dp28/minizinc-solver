@@ -4,11 +4,15 @@ var path = require('path');
 var timedExec = require('./timed-exec').timedExec;
 var buildError = require('./error').buildError;
 
+var DEFAULT_TIMEOUT_IN_MILLIS = 30000;
 var SOLVER_DIR = path.join(__dirname, '../', './lib');
 var SOLUTION_SEPARATOR = '----------';
 var SOLVE_COMMAND = './solve';
-var SOLVE_COMMAND_ARGS = ['--num-solutions', 1, '--solution-separator', SOLUTION_SEPARATOR];
-var DEFAULT_TIMEOUT_IN_MILLIS = 30000;
+var SOLVE_COMMAND_ARGS = [
+  '--num-solutions', 1,
+  '--solution-separator', SOLUTION_SEPARATOR,
+  '--solver', 'Gecode'
+];
 
 module.exports.solve = solveMinizincProblem;
 module.exports.solveWithTimeout = solveMinizincProblemWithTimeout;
